@@ -9,7 +9,7 @@ parser.add_argument('--noise', default='synth')
 
 parser.add_argument('--model', default='unet')
 
-parser.add_argument('--epoch', default=100)
+parser.add_argument('--epoch', type=int, default=100)
 parser.add_argument('--batch_size', default=4)
 parser.add_argument('--shuffle', action="store_true", default=True)
 parser.add_argument('--num_workers', default=0)
