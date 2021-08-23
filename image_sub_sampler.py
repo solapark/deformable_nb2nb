@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+import time
 from synthetic_data_generator import get_generator
 
 def space_to_depth(x, block_size):
@@ -20,19 +22,26 @@ def generate_mask_pair(img):
         [[0, 1], [0, 2], [1, 3], [2, 3], [1, 0], [2, 0], [3, 1], [3, 2]],
         dtype=torch.int64,
         device=img.device)
+    '''
     rd_idx = torch.zeros(size=(n * h // 2 * w // 2, ),
                          dtype=torch.int64,
                          device=img.device)
-    '''
     torch.randint(low=0,
                   high=8,
                   size=(n * h // 2 * w // 2, ),
                   generator=get_generator(),
                   out=rd_idx)
     '''
+    '''
     rd_idx = torch.randint(low=0,
                   high=8,
                   size=(n * h // 2 * w // 2, ))
+    '''
+    np.random.seed(int(time.time()))
+    rd_idx = np.random.randint(low=0,
+                  high=8,
+                  size=(n * h // 2 * w // 2, ))
+    rd_idx = torch.from_numpy(rd_idx)
     rd_pair_idx = idx_pair[rd_idx]
     rd_pair_idx += torch.arange(start=0,
                                 end=n * h // 2 * w // 2 * 4,

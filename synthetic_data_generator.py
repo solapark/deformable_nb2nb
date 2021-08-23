@@ -12,7 +12,6 @@ def get_generator():
     return g_cuda_generator
 class AugmentNoise(object):
     def __init__(self, style):
-        np.random.seed(int(time.time()))
         if style.startswith('gauss'):
             self.params = [float(p) / 255.0 for p in style.replace('gauss', '', 1).split('_')]
             if len(self.params) == 1:
@@ -31,6 +30,7 @@ class AugmentNoise(object):
             shape = (shape[0], 1, 1, 1)
             std = self.params[0]
             std = std * torch.ones(shape, device=x.device)
+            np.random.seed(int(time.time()))
             noise =  np.random.normal(size=shape) * std
             noise = torch.from_numpy(noise).type(torch.FloatTensor) if x.device.type == 'cpu' else torch.from_numpy(noise).type(torch.cuda.FloatTensor)
             result = x + noise
@@ -67,6 +67,7 @@ class AugmentNoise(object):
         if self.style == "gauss_fix":
             std = self.params[0]
             #return np.array(x + np.random.normal(size=shape) * std, dtype=np.float32)
+            np.random.seed(int(time.time()))
             noise =  np.random.normal(size=shape) * std
             noise = torch.from_numpy(noise).type(torch.FloatTensor) if x.device.type == 'cpu' else torch.from_numpy(noise).type(torch.cuda.FloatTensor)
             result =x + noise 
