@@ -82,7 +82,49 @@ class up(nn.Module):
 class outconv(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(outconv, self).__init__()
+##########original############
         self.conv = nn.Conv2d(in_ch, out_ch, 1)
+###################################
+
+#############three_1x1_added######################
+#        self.conv=nn.Sequential(
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.Conv2d(in_ch,out_ch,1))
+##################################################
+
+############three_1x1_w_activation##############
+#        self.conv=nn.Sequential(
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,out_ch,1))
+##############################################
+############three_1x1_w_bn_act##############
+#        self.conv=nn.Sequential(
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.BatchNorm2d(in_ch),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.BatchNorm2d(in_ch),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,in_ch,1),
+#                  nn.BatchNorm2d(in_ch),
+#                  nn.ReLU(inplace=True),
+#                  nn.Conv2d(in_ch,out_ch,1))
+###############################################
+#############three_3ch_1x1_added######################
+#        self.conv=nn.Sequential(
+#                  nn.Conv2d(in_ch,out_ch,1),
+#                  nn.Conv2d(out_ch,out_ch,1),
+#                  nn.Conv2d(out_ch,out_ch,1),
+#                  nn.Conv2d(out_ch,out_ch,1))
+#################################################
+
 
     def forward(self, x):
         x = self.conv(x)

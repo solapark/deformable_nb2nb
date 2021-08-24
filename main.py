@@ -11,12 +11,12 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from synthetic_data_generator import *
+#from synthetic_data_generator import *
 from image_sub_sampler import *
 from models import MODELS
 from dataset import get_dataset
 from option import args 
-
+os.environ["CUDA_VISIBLE_DEVICES"] ="1"
 def get_concat_img(img_list, cols=3):
     rows = int(len(img_list)/cols)
     hor_imgs = [np.hstack(img_list[i*cols:(i+1)*cols]) for i in range(rows)]
@@ -39,7 +39,8 @@ def calculate_psnr(a, b, axis=None):
     x = tf.reduce_mean((a - b)**2, axis=axis)
     return tf.log((255 * 255) / x) * (10.0 / math.log(10))
 
-def train(args, device, network, noise_adder):
+#def train(args, device, network, noise_adder):
+def train(args, device, network):
     log_dir = os.path.join(args.basepath, args.savename, 'log')
     os.makedirs(log_dir, exist_ok=True) 
     writer = SummaryWriter(log_dir=log_dir)
@@ -63,14 +64,26 @@ def train(args, device, network, noise_adder):
     n_epoch = args.epoch
     for epoch in range(1, n_epoch+1):
         print('epoch', epoch, '/', n_epoch)
-        for i, clean in enumerate(dataloader):
+#        for i, clean in enumerate(dataloader):
+        for i, inputs in enumerate(dataloader):
             if(i+1) % 50 == 0 :
                 print( i+1, '/', len(dataloader))
             # preparing synthetic noisy images
+            clean = inputs['gt']
             clean = clean / 255.0
             clean = clean.to(device = device)
+
+
+            noisy = inputs['noisy']
+            noisy = noisy / 255.0
+            noisy = noisy.to(device = device)
+#            clean_d = (clean[0]*255.0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)
+#            noisy_d = (noisy[0]*255.0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)
+#            cv2.imwrite('clean_%d.png'%i,clean_d)
+#            cv2.imwrite('noisy_%d.png'%i,noisy_d)
+
             #noisy = noise_adder.add_train_noise(clean)
-            noisy = noise_adder.add_valid_noise(clean)
+#            noisy = noise_adder.add_valid_noise(clean)
             optimizer.zero_grad()
 
             # generating a sub-image pair
@@ -89,7 +102,7 @@ def train(args, device, network, noise_adder):
             noisy_output = network(noisy_sub1)
             noisy_target = noisy_sub2
 
-            '''
+            
             if i % 1 == 0 :
                 noisy_d = (noisy[0]*255.0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)
                 clean_d = (clean[0]*255.0).detach().cpu().numpy().astype('uint8').transpose(1, 2, 0)
@@ -105,7 +118,7 @@ def train(args, device, network, noise_adder):
                 img_list =  get_concat_img(img_list, cols=3)
                 cv2.imshow('noisy_sub1, noisy_sub2, noisy_su1_denoised', img_list)
                 cv2.waitKey()
-            '''
+            
 
             Lambda = epoch / n_epoch * args.lambda_ratio
             diff = noisy_output - noisy_target
@@ -134,7 +147,8 @@ def train(args, device, network, noise_adder):
         #dir_result_ep = os.path.join(dir_result, 'ep%03d'%(epoch+1))
         #demo(network, noise_adder, val_dataloader, device, dir_result_ep)
 
-def validation_all_epoch(args, network, noise_adder, device):
+#def validation_all_epoch(args, network, noise_adder, device):
+def validation_all_epoch(args, network, device):
     dataset = get_dataset(args, args.val_dataset)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
@@ -146,7 +160,8 @@ def validation_all_epoch(args, network, noise_adder, device):
     max_psnr_path = -1
     for model_path in all_models_path :
         network.load_state_dict(torch.load(model_path))
-        cur_psnr = validation(network, noise_adder, dataloader, device)
+#        cur_psnr = validation(network, noise_adder, dataloader, device)
+        cur_psnr = validation(network, dataloader, device)
         print('cur_psnr', cur_psnr, 'model_path', model_path)
         if cur_psnr > max_psnr :
             max_psnr = cur_psnr
@@ -155,14 +170,21 @@ def validation_all_epoch(args, network, noise_adder, device):
     print('max_psnr', max_psnr, 'max_psnr_path', max_psnr_path)
 
     dir_result = os.path.join(args.basepath, args.savename, 'result', args.val_dataset)
-    demo(network, noise_adder, dataloader, device, dir_result)
+#    demo(network, noise_adder, dataloader, device, dir_result)
+    demo(network, dataloader, device, dir_result)
 
-def validation(network, noise_adder, dataloader, device):
+#def validation(network, noise_adder, dataloader, device):
+def validation(network, dataloader, device):
     psnr_sum = 0
-    for i, clean_raw in enumerate(dataloader):
+#    for i, clean_raw in enumerate(dataloader):
+    for i, inputs in enumerate(dataloader):
+        clean_raw = inputs['gt']
         clean = clean_raw / 255.0
         clean = clean.to(device = device)
-        noisy = noise_adder.add_valid_noise(clean)
+        noisy_raw = inputs['noisy']
+        noisy = noisy_raw / 255.0
+        noisy = noisy.to(device = device)
+#        noisy = noise_adder.add_valid_noise(clean)
         noisy_denoised = network(noisy)
 
         psnr =  calculate_psnr(clean.detach().cpu().numpy(), noisy_denoised.detach().cpu().numpy(), axis=(1,2,3))
@@ -175,13 +197,19 @@ def validation(network, noise_adder, dataloader, device):
         psnr_sum += psnr
     return  psnr_sum/len(dataloader)
 
-def demo(network, noise_adder, dataloader, device, dir_result):
+#def demo(network, noise_adder, dataloader, device, dir_result):
+def demo(network, dataloader, device, dir_result):
     os.makedirs(dir_result, exist_ok=True) 
 
-    for i, clean in enumerate(dataloader):
+#    for i, clean in enumerate(dataloader):
+    for i, inputs in enumerate(dataloader):
+        clean = inputs['gt']
         clean = clean / 255.0
         clean = clean.to(device = device)
-        noisy = noise_adder.add_valid_noise(clean)
+        noisy = inputs['noisy']
+        noisy = noisy / 255.0
+        noisy = noisy.to(device = device)
+#        noisy = noise_adder.add_valid_noise(clean)
         noisy_denoised = network(noisy)
        
         
@@ -213,14 +241,17 @@ if __name__ == '__main__':
     if args.model_path :
         network.load_state_dict(torch.load(args.model_path, map_location=device))
 
-    noise_adder = AugmentNoise(style="gauss25")
+#    noise_adder = AugmentNoise(style="gauss25")
 
     if args.mode == 'train':
-        train(args, device, network, noise_adder)
+#        train(args, device, network, noise_adder)
+        train(args, device, network)
     elif args.mode == 'val_models':
-        validation_all_epoch(args, network, noise_adder, device)
+#        validation_all_epoch(args, network, noise_adder, device)
+        validation_all_epoch(args, network, device)
     elif args.mode == 'demo':
         dataset = get_dataset(args, args.val_dataset)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
         dir_result = os.path.join(args.basepath, args.savename, 'result', args.val_dataset)
-        demo(network, noise_adder, dataloader, device, dir_result)
+#        demo(network, noise_adder, dataloader, device, dir_result)
+        demo(network, dataloader, device, dir_result)
