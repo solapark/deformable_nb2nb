@@ -125,7 +125,7 @@ def train(args, device, network):
             exp_diff = noisy_sub1_denoised - noisy_sub2_denoised
             loss1 = torch.mean(diff**2)
             loss2 = Lambda * torch.mean((diff - exp_diff)**2)
-            loss_all = loss1 + loss2
+
             #loss_all = loss1
             #print('loss1', loss1.item(), 'loss2', loss2.item(), 'loss_all', loss_all.item())
             loss_all.backward()
