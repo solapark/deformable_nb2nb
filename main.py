@@ -158,16 +158,25 @@ def validation_all_epoch(args, network, device):
 
     max_psnr = -1
     max_psnr_path = -1
+    psnr_list = []
     for model_path in all_models_path :
         network.load_state_dict(torch.load(model_path))
+<<<<<<< HEAD
 #        cur_psnr = validation(network, noise_adder, dataloader, device)
         cur_psnr = validation(network, dataloader, device)
+=======
+        cur_psnr = validation(network, noise_adder, dataloader, device)
+        psnr_list.append(cur_psnr)
+>>>>>>> 5811caf8419cfa37760326d57410d04474c0809b
         print('cur_psnr', cur_psnr, 'model_path', model_path)
         if cur_psnr > max_psnr :
             max_psnr = cur_psnr
             max_psnr_path = model_path
             
     print('max_psnr', max_psnr, 'max_psnr_path', max_psnr_path)
+    print('pretty print')
+    for i, psnr in enumerate(psnr_list) :
+        print('%d\t%f'%(i+1, psnr))
 
     dir_result = os.path.join(args.basepath, args.savename, 'result', args.val_dataset)
 #    demo(network, noise_adder, dataloader, device, dir_result)
